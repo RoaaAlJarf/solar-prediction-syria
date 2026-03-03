@@ -10,6 +10,13 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # ============================================================
+# إضافة مكتبة المصادقة
+# ============================================================
+import streamlit_authenticator as stauth
+import yaml
+from yaml.loader import SafeLoader
+
+# ============================================================
 # إعداد الصفحة
 # ============================================================
 st.set_page_config(
@@ -20,8 +27,71 @@ st.set_page_config(
 )
 
 # ============================================================
-# تحميل الخطوط العربية  CSS 
+# إعداد المصادقة (Authentication)
 # ============================================================
+
+# بيانات المستخدمين المسموح لهم (يمكنك تعديلها)
+hashed_passwords = stauth.Hasher(['svu2026', 'hajooz2026', 'roaa303101']).generate()
+
+config = {
+    'credentials': {
+        'usernames': {
+            'committee': {
+                'email': 'committee@svuonline.org',
+                'name': 'لجنة المناقشة',
+                'password': hashed_passwords[0]
+            },
+            'supervisor': {
+                'email': 't_mhajooz@svuonline.org',
+                'name': 'د. محمد مصطفى حجوز',
+                'password': hashed_passwords[1]
+            },
+            'roaa': {
+                'email': 'roaa_303101@svuonline.org',
+                'name': 'رؤى ظافر الجرف',
+                'password': hashed_passwords[2]
+            }
+        }
+    },
+    'cookie': {
+        'expiry_days': 30,          # مدة صلاحية الجلسة (30 يوم)
+        'key': 'solar_prediction_key',
+        'name': 'solar_prediction_cookie'
+    },
+    'preauthorized': {
+        'emails': []
+    }
+}
+
+# إنشاء كائن المصادقة
+authenticator = stauth.Authenticate(
+    config['credentials'],
+    config['cookie']['name'],
+    config['cookie']['key'],
+    config['cookie']['expiry_days'],
+    config['preauthorized']
+)
+
+# عرض واجهة تسجيل الدخول (بدون custom fields لأن الإصدار لا يدعمها)
+name, authentication_status, username = authenticator.login('main')
+
+# التحقق من حالة المصادقة
+if authentication_status == False:
+    st.error("❌ اسم المستخدم أو كلمة السر غير صحيحة")
+    st.stop()
+elif authentication_status == None:
+    st.warning("🔐 الرجاء إدخال اسم المستخدم وكلمة السر للوصول إلى التطبيق")
+    st.stop()
+else:
+    # تسجيل الدخول ناجح - نعرض رسالة ترحيب في الشريط الجانبي
+    st.sidebar.success(f"✅ مرحباً {name}")
+    authenticator.logout('تسجيل الخروج', 'sidebar')
+
+# ============================================================
+# باقي الكود كما هو (بدون تغيير)
+# ============================================================
+
+# تحميل الخطوط العربية CSS (كما هو)
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
@@ -246,7 +316,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# الدوال المساعدة
+# الدوال المساعدة (كما هي)
 # ============================================================
 @st.cache_resource
 def load_model_and_scalers(plant_name):
@@ -291,7 +361,7 @@ def inverse_scale(y_scaled, y_min, y_max):
     return y_scaled * (y_max - y_min) + y_min
 
 # ============================================================
-# دالة الخريطة 
+# دالة الخريطة (كما هي)
 # ============================================================
 def create_solar_map(selected_plant, plant_coords):
     syria_cities = pd.DataFrame({
@@ -360,7 +430,7 @@ plant_options = {
 }
 
 # ============================================================
-# الشريط الجانبي
+# الشريط الجانبي (مع إضافة زر تسجيل الخروج في أعلاه)
 # ============================================================
 with st.sidebar:
     st.image("https://img.icons8.com/color/96/000000/solar-panel.png", width=80)
